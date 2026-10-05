@@ -273,7 +273,7 @@ ggsave("RQ2_ocean_connection.png",
                                                panel.grid = element_blank(), legend.position = "none"),
        width = 7, height = 5, dpi = 300, bg = "white")
 
-#Ocean connection - between country comparison 
+#Ocean connection - between-country comparison 
 
 survey_anon <- survey_anon %>%
   mutate(extremely_connected = ocean_connection == "Extremely connected")
@@ -351,15 +351,8 @@ survey_anon %>%
 
 cat("\n\n========== RQ3: Place-based factors ==========\n")
 
-#Bivariate Analysis 
-
 # ------------------------------------------------------------
 # Clean the land-cover column list
-# ------------------------------------------------------------
-# WHY: the raw multi-select expansion includes the original text
-# column and rare one-off free-text write-ins (n < 3) that cannot
-# support a meaningful statistical comparison. These were excluded
-# before any testing
 # ------------------------------------------------------------
 
 land_cols_all <- names(survey_anon)[str_starts(names(survey_anon), "land_")]
@@ -384,13 +377,6 @@ survey_anon <- survey_anon %>%
 # Bivariate screening
 # ------------------------------------------------------------
 # WHY these specific tests:
-#   - travel_time_coast is ordinal -> Spearman's rank correlation
-#     (respects the natural ordering; Kruskal-Wallis would discard it)
-#   - area_type is unordered categorical (4 groups) -> Kruskal-Wallis
-#   - each land-cover type is a binary yes/no indicator -> Mann-Whitney U,
-#     one test per type, with Benjamini-Hochberg correction across
-#     the simultaneous tests to control the false discovery rate
-# ------------------------------------------------------------
 
 cat("\n========== STEP 2: Bivariate screening ==========\n")
 
@@ -462,14 +448,8 @@ rq3_data <- survey_anon %>%
 
 cat("\nSample size for RQ3 modelling:", nrow(rq3_data), "\n")
 
-
 # ------------------------------------------------------------
-# STEP 4: Solo models - each place-based factor type alone
-# ------------------------------------------------------------
-# WHY: before combining factors, each is tested alone against the
-# null model, to establish which single TYPE of place-based factor
-# (travel time, urban/rural, or land-cover) is the strongest
-# standalone predictor of connectedness.
+# Solo models - each place-based factor type alone
 # ------------------------------------------------------------
 
 cat("\n========== STEP 4: Solo models (each factor type alone) ==========\n")
@@ -523,14 +503,8 @@ if (!is.null(n_land_only)) { cat("\nLand types alone vs null:\n"); print(anova(n
 #1                                                                                        1       222   603.6135                                   
 #2 land_coast_beach + land_estuary + land_wetland + land_conservation_area + land_grassland       217   573.5172 1 vs 2     5 30.09633 1.411847e-05
 
-
 # ------------------------------------------------------------
 # Combined models - building up from land types
-# ------------------------------------------------------------
-# WHY start from land types rather than travel time: Step 4
-# established land-cover characteristics as the strongest solo
-# predictor, so subsequent models build outward from that base to
-# test whether travel time and/or area_type add anything further.
 # ------------------------------------------------------------
 
 cat("\n========== STEP 5: Combined models ==========\n")
@@ -631,11 +605,6 @@ if (!is.null(n5)) {
 # ------------------------------------------------------------
 # Select and report the best-supported model
 # ------------------------------------------------------------
-# WHY report AIC + LRT + VIF + Brant together, and interpret with
-# appropriate caution: AIC identifies the best-supported model
-# AMONG THOSE TESTED, not a definitively "true" model
-# (Burnham & Anderson, 2002).
-# ------------------------------------------------------------
 
 cat("\n========== STEP 7: Best-supported model ==========\n")
 
@@ -706,7 +675,7 @@ print(brant(n_best_rq3))
 #land_conservation_area	3.44	3	0.33
 #land_grassland			24.28	3	0
 #------------------------------------------------------------ 
-#  
+
 #  H0: Parallel Regression Assumption holds
 #X2 df  probability
 #Omnibus                 57.1632445 30 2.002253e-03
@@ -739,17 +708,13 @@ cat("model (e.g. via ordinal::clm with a nominal= term for that predictor).\n")
 
 cat("\n========== STEP 8: Interpretive note ==========\n")
 cat("
-If travel_time_coast was significant bivariately (Step 2) but not in the
+If travel_time_coast was significant bivariately but not in the
 final combined model (Step 7), this is consistent with CONFOUNDING: travel
 time's apparent effect may be substantially explained by its correlation
-with specific land-cover types (Baron & Kenny, 1986).
- 
-If area_type was NOT significant bivariately (Step 2) but IS significant
+with specific land-cover types. If area_type was NOT significant bivariately (Step 2) but IS significant
 in the final combined model (Step 7), this is consistent with a
 SUPPRESSION EFFECT: area_type's true relationship with connectedness may
-only become visible once land-cover heterogeneity is held constant
-(Tzelgov & Henik, 1991).
- 
+only become visible once land-cover heterogeneity is held constant.
 Both patterns are expected, legitimate features of multivariate modelling
 and should be reported as substantive findings, not discrepancies to
 reconcile away.
@@ -810,7 +775,7 @@ kruskal.test(as.integer(travel_time_coast) ~ land_estuary, data = survey_anon)
 ######proximity to coast is confounding with travel time:
 
 #-----------------------------------------
-#Running a diagnostic tests 
+#Running diagnostic tests 
 #-----------------------------------------
 
 # Model without coast/beach, with travel time
@@ -1047,11 +1012,10 @@ mechanism                                              statistic p_value test_us
 
 # --------------------------------------------------------------
 # Research Question 5 - What predicts interest in participation?
-# Hierarchical (blockwise) modelling, per supervisor's suggestion
 # --------------------------------------------------------------
 cat("\n\n========== RQ5: Interest in Participation ==========\n")
 
-# --- Step 1: derived variables ---
+# --- derived variables ---
 awareness_n_tbl <- survey_anon %>%
   select(row_id, all_of(mechanism_cols), -any_of("mechanism_none_of_the_above")) %>%
   mutate(awareness_n = rowSums(select(., -row_id), na.rm = TRUE)) %>%
@@ -1061,7 +1025,7 @@ survey_anon <- survey_anon %>%
   left_join(awareness_n_tbl, by = "row_id") %>%
   mutate(learned_at_work = coalesce(learn_work_volunteering == 1, FALSE))
 
-# --- Step 2: bivariate screening ---
+# --- bivariate screening ---
 cat("\n--- Bivariate screening ---\n")
 cat("\nSpearman: interest vs ocean_connection\n")
 print(cor.test(as.integer(survey_anon$interest_decisions), as.integer(survey_anon$ocean_connection), method = "spearman"))
@@ -1177,7 +1141,7 @@ cat("\nMann-Whitney: interest by country\n"); print(wilcox.test(as.integer(inter
 #W = 6100, p-value = 0.0003448
 #alternative hypothesis: true location shift is not equal to 0
 
-# --- Step 3: shared modelling dataset ---
+# --- shared modelling dataset ---
 
 names(rq5_data)          # does it include age_group, employment_status, country?
 table(rq5_data$area_type)
@@ -1233,7 +1197,7 @@ print(vif(lm(vif_formula, data = rq5_data)))
 #employment_status 7.070512 19        1.052820
 #country           1.688378  1        1.299376
  
-# --- Step 5: report best-supported model ---
+# --- report best-supported model ---
 best_model_rq5 <- b1   # <-- confirm against your printed AIC/LRT results above
 cat("\n--- RQ5 best model: coefficients ---\n")
 rq5_coef <- coef(summary(best_model_rq5)); rq5_pvals <- pnorm(abs(rq5_coef[, "t value"]), lower.tail = FALSE) * 2
@@ -1258,7 +1222,7 @@ cat("\n--- RQ5 best model: odds ratios ---\n"); print(exp(cbind(OR = coef(best_m
 cat("\n--- RQ5 best model: Brant test ---\n"); print(brant(best_model_rq5))
 
 # ----------------------------------------------------------------------
-# PART G: Country comparisons (overall)
+# Country comparisons (overall)
 # ----------------------------------------------------------------------
 
 cat("\n\n========== Country Comparisons ==========\n")
